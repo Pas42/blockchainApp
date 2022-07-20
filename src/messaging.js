@@ -24,14 +24,14 @@ class Message {
     }
 
     isValid() {
-        if (this.fromAddress == null)
+        if (this.from == null)
             return true;
 
         if (!this.signature || this.signature.length == 0) {
             throw new Error('No signature in this transaction');
         }
 
-        const publicKey = ec.keyFromPublic(this.fromAddress, 'hex');
+        const publicKey = ec.keyFromPublic(this.from, 'hex');
         return publicKey.verify(this.calculateHash(), this.signature);
     }
 }
@@ -46,7 +46,7 @@ class Block {
     }
 
     calculateHash() {
-        return SHA256(this.index + this.previousHash + this.timestamp, JSON.stringify(this.data) + this.nonce).toString();
+        return SHA256(this.previousHash + this.timestamp, JSON.stringify(this.data) + this.nonce).toString();
     }
 
     // to increase difficuly to blockchain when mining
@@ -61,7 +61,7 @@ class Block {
     }
 
     hasValidMessage() {
-        for (const tx of this.message) {
+        for (const tx of this.data) {
             if (!tx.isValid()) {
                 return false;
             }
@@ -119,6 +119,15 @@ class Blockchain {
         this.pendingMessage.push(message);
     }
 
+    getMessages(){
+        if(this.pendingMessage.length < 0){
+            throw new Error('No messages in blockchain');
+        }
+        for (let i = 0; i < this.pendingMessage.length; i++) {
+            return this.pendingMessage[i].message;
+        }
+    }
+
 
     //
     //  @not using
@@ -127,7 +136,7 @@ class Blockchain {
         let balance = 0;
 
         for (const block of this.chain) {
-            for (const trans of block.messageData) {
+            for (const trans of block.data) {
                 // if sending transaction, balance reduced
                 if (trans.fromAddress == address) {
                     balance -= trans.amount;
